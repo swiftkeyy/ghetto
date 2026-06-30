@@ -181,10 +181,6 @@ class Subscription(Base):
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="subscriptions")
     payment: Mapped[Optional["Payment"]] = relationship("Payment", back_populates="subscription")
-    
-    __table_args__ = (
-        Index(None, "user_id", "status"),
-    )
 
     def __repr__(self):
         return f"<Subscription(id={self.id}, user_id={self.user_id}, plan={self.plan}, status={self.status})>"
