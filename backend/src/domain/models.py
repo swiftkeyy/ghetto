@@ -143,10 +143,6 @@ class User(Base):
     referrals: Mapped[List["User"]] = relationship("User", backref="referrer", remote_side=[id])
     rewards: Mapped[List["Reward"]] = relationship("Reward", back_populates="user", cascade="all, delete-orphan")
     
-    __table_args__ = (
-        Index("idx_users_status", "status"),
-    )
-
     def __repr__(self):
         return f"<User(id={self.id}, telegram_id={self.telegram_id}, username={self.username})>"
 
@@ -187,8 +183,7 @@ class Subscription(Base):
     payment: Mapped[Optional["Payment"]] = relationship("Payment", back_populates="subscription")
     
     __table_args__ = (
-        Index("idx_subscriptions_user_status", "user_id", "status"),
-        Index("idx_end_date", "end_date"),
+        Index(None, "user_id", "status"),
     )
 
     def __repr__(self):
@@ -228,8 +223,7 @@ class Payment(Base):
     subscription: Mapped[Optional["Subscription"]] = relationship("Subscription", back_populates="payment", uselist=False)
     
     __table_args__ = (
-        Index("idx_payments_user_status", "user_id", "status"),
-        Index("idx_external_id", "external_id"),
+        Index(None, "user_id", "status"),
     )
 
     def __repr__(self):
@@ -285,12 +279,6 @@ class Server(Base):
     # Relationships
     connections: Mapped[List["Connection"]] = relationship("Connection", back_populates="server", cascade="all, delete-orphan")
     
-    __table_args__ = (
-        Index("idx_servers_status", "status"),
-        Index("idx_country", "country_code"),
-        Index("idx_protocol", "protocol"),
-    )
-
     def __repr__(self):
         return f"<Server(id={self.id}, code={self.code}, country={self.country}, status={self.status})>"
 
@@ -333,7 +321,7 @@ class Device(Base):
     connections: Mapped[List["Connection"]] = relationship("Connection", back_populates="device", cascade="all, delete-orphan")
     
     __table_args__ = (
-        Index("idx_user_active", "user_id", "is_active"),
+        Index(None, "user_id", "is_active"),
     )
 
     def __repr__(self):
@@ -374,8 +362,7 @@ class Connection(Base):
     server: Mapped["Server"] = relationship("Server", back_populates="connections")
     
     __table_args__ = (
-        Index("idx_user_active", "user_id", "is_active"),
-        Index("idx_connected_at", "connected_at"),
+        Index(None, "user_id", "is_active"),
     )
 
     def __repr__(self):
@@ -419,12 +406,6 @@ class PromoCode(Base):
     # Timestamps
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
-    
-    __table_args__ = (
-        Index("idx_active", "is_active"),
-        CheckConstraint("max_uses IS NULL OR max_uses > 0", name="check_max_uses_positive"),
-        CheckConstraint("value > 0", name="check_value_positive"),
-    )
 
     def __repr__(self):
         return f"<PromoCode(id={self.id}, code={self.code}, type={self.type})>"
@@ -463,7 +444,7 @@ class Reward(Base):
     user: Mapped["User"] = relationship("User", back_populates="rewards")
     
     __table_args__ = (
-        Index("idx_user_claimed", "user_id", "is_claimed"),
+        Index(None, "user_id", "is_claimed"),
     )
 
     def __repr__(self):
