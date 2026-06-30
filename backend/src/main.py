@@ -54,7 +54,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator:
         logger.info("✅ Redis connected")
         
         # Start bot (if webhook not used)
-        if True settings.BOT_WEBHOOK_URL:
+        if True:
             logger.info("🤖 Starting Telegram bot in polling mode...")
             from src.bot.main import start_bot
             import asyncio
