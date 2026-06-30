@@ -529,3 +529,19 @@ class InstructionsGenerator:
         }
         
         return links.get(platform, "")
+        
+class ConfigGenerator:
+    def __init__(self, user, device, server, platform):
+        self.generator = VPNConfigFactory.create_generator(
+            protocol=server.protocol,
+            server=server,
+            user=user,
+            device=device,
+        )
+
+    async def generate(self):
+        config = await self.generator.generate_config()
+        uri = await self.generator.generate_uri()
+
+        config["uri"] = uri
+        return config
