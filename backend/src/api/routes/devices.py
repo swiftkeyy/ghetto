@@ -28,6 +28,7 @@ from src.api.dependencies.auth import (
     check_device_limit,
 )
 from src.core.config import settings
+from src.vpn.config_generator import ConfigGenerator
 
 router = APIRouter()
 
@@ -157,7 +158,7 @@ async def delete_device(
     user: User = Depends(get_current_active_user),
 ):
     """
-    Delete device
+    Delete device and remove keys from VPS
     """
     query = select(Device).where(
         Device.id == device_id,
@@ -171,6 +172,23 @@ async def delete_device(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Device not found"
         )
+    
+    # Try to remove keys from all servers
+    if device.public_key or device.config:
+        from src.vpn.ssh_manager import remove_vpn_config_for_device
+        
+        # Get all servers and try to remove from each
+        query = select(Server).where(Server.is_active == True)
+        result = await db.execute(query)
+        servers = result.scalars().all()
+        
+        for server in servers:
+            if server.config and server.config.get('ssh_enabled'):
+                try:
+                    await remove_vpn_config_for_device(server, device)
+                except Exception as e:
+                    # Log error but continue deletion
+                    print(f"Failed to remove device from server {server.id}: {str(e)}")
     
     await db.delete(device)
     await db.commit()
@@ -213,15 +231,50 @@ async def get_device_config(
             detail="Server not found"
         )
     
-    # Generate configuration based on platform and protocol
-    config_generator = ConfigGenerator(
-        user=user,
-        device=device,
-        server=server,
-        platform=config_request.platform
-    )
+    # Generate configuration via SSH if server has SSH credentials
+    if server.config and server.config.get('ssh_enabled'):
+        # Use SSH manager to create keys directly on VPS
+        from src.vpn.ssh_manager import create_vpn_config_for_device
+        
+        try:
+            ssh_config = await create_vpn_config_for_device(server, user, device)
+            
+            # Save keys to device
+            device.public_key = ssh_config.get('public_key')
+            device.private_key = ssh_config.get('private_key')
+            
+            config_data = {
+                "config_base64": base64.b64encode(ssh_config['config'].encode()).decode(),
+                "import_link": ssh_config.get('import_link', ''),
+                "qr_code_base64": "",  # Will be generated below
+                "instructions": "",
+                "app_download_link": ""
+            }
+        except Exception as e:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail=f"Failed to create VPN config on server: {str(e)}"
+            )
+    else:
+        # Generate configuration locally (old method)
+        config_generator = ConfigGenerator(
+            user=user,
+            device=device,
+            server=server,
+            platform=config_request.platform
+        )
+        
+        config_data = await config_generator.generate()
     
-    config_data = await config_generator.generate()
+    # Generate QR code for any method
+    from src.vpn.config_generator import QRCodeGenerator
+    qr_code_data = config_data.get('import_link') or base64.b64decode(config_data['config_base64']).decode()
+    config_data['qr_code_base64'] = QRCodeGenerator.generate_base64(qr_code_data, style='neon')
+    
+    # Get instructions
+    from src.vpn.config_generator import InstructionsGenerator
+    config_data['instructions'] = InstructionsGenerator.get_instructions(config_request.platform, server.protocol)
+    config_data['app_download_link'] = InstructionsGenerator.get_app_download_link(config_request.platform)
     
     # Save config to device
     device.config = config_data["config_base64"]
