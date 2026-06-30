@@ -348,10 +348,6 @@ class Connection(Base):
     user: Mapped["User"] = relationship("User", back_populates="connections")
     device: Mapped["Device"] = relationship("Device", back_populates="connections")
     server: Mapped["Server"] = relationship("Server", back_populates="connections")
-    
-    __table_args__ = (
-        Index(None, "user_id", "is_active"),
-    )
 
     def __repr__(self):
         return f"<Connection(id={self.id}, user_id={self.user_id}, server_id={self.server_id})>"
