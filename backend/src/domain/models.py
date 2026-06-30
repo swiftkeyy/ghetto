@@ -103,7 +103,7 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False)
+    telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False, index=True)
     username: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     first_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     last_name: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
@@ -144,9 +144,7 @@ class User(Base):
     rewards: Mapped[List["Reward"]] = relationship("Reward", back_populates="user", cascade="all, delete-orphan")
     
     __table_args__ = (
-        Index("idx_telegram_id", "telegram_id"),
-        Index("idx_referral_code", "referral_code"),
-        Index("idx_status", "status"),
+        Index("idx_users_status", "status"),
     )
 
     def __repr__(self):
@@ -189,7 +187,7 @@ class Subscription(Base):
     payment: Mapped[Optional["Payment"]] = relationship("Payment", back_populates="subscription")
     
     __table_args__ = (
-        Index("idx_user_status", "user_id", "status"),
+        Index("idx_subscriptions_user_status", "user_id", "status"),
         Index("idx_end_date", "end_date"),
     )
 
@@ -230,7 +228,7 @@ class Payment(Base):
     subscription: Mapped[Optional["Subscription"]] = relationship("Subscription", back_populates="payment", uselist=False)
     
     __table_args__ = (
-        Index("idx_user_status", "user_id", "status"),
+        Index("idx_payments_user_status", "user_id", "status"),
         Index("idx_external_id", "external_id"),
     )
 
@@ -288,7 +286,7 @@ class Server(Base):
     connections: Mapped[List["Connection"]] = relationship("Connection", back_populates="server", cascade="all, delete-orphan")
     
     __table_args__ = (
-        Index("idx_status", "status"),
+        Index("idx_servers_status", "status"),
         Index("idx_country", "country_code"),
         Index("idx_protocol", "protocol"),
     )
@@ -423,7 +421,6 @@ class PromoCode(Base):
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     
     __table_args__ = (
-        Index("idx_code", "code"),
         Index("idx_active", "is_active"),
         CheckConstraint("max_uses IS NULL OR max_uses > 0", name="check_max_uses_positive"),
         CheckConstraint("value > 0", name="check_value_positive"),
