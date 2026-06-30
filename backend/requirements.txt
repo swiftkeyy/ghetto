@@ -35,7 +35,7 @@ Pillow==10.2.0
 
 stripe==7.9.0
 yookassa==3.0.0
-aiocryptopay==0.6.0
+aiocryptopay>=0.4.8
 
 prometheus-client==0.19.0
 prometheus-fastapi-instrumentator==6.1.0
