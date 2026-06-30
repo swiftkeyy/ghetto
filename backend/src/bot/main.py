@@ -598,4 +598,4 @@ async def set_webhook():
 
 
 if __name__ == "__main__":
-    await start_bot()
+    asyncio.run(start_bot())
