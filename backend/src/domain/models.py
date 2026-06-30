@@ -311,10 +311,6 @@ class Device(Base):
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="devices")
     connections: Mapped[List["Connection"]] = relationship("Connection", back_populates="device", cascade="all, delete-orphan")
-    
-    __table_args__ = (
-        Index(None, "user_id", "is_active"),
-    )
 
     def __repr__(self):
         return f"<Device(id={self.id}, name={self.name}, platform={self.platform})>"
@@ -434,10 +430,6 @@ class Reward(Base):
     
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="rewards")
-    
-    __table_args__ = (
-        Index(None, "user_id", "is_claimed"),
-    )
 
     def __repr__(self):
         return f"<Reward(id={self.id}, user_id={self.user_id}, type={self.type})>"
